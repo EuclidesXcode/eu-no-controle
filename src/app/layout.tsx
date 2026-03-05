@@ -7,8 +7,8 @@ import { LayoutDashboard, Flower2, ShoppingCart, Menu } from "lucide-react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EU NO CONTROLE - Dashboard de Buquês",
-  description: "Sistema de gerenciamento de buquês e vendas",
+  title: "EU NO CONTROLE - Dashboard de Produtos",
+  description: "Sistema de gerenciamento de produtos e vendas",
 };
 
 export default function RootLayout({
@@ -29,7 +29,7 @@ export default function RootLayout({
         <aside className="hidden md:flex w-64 border-r border-border glass flex-col fixed h-full z-50">
           <div className="p-6">
             <h1 className="text-xl font-bold gradient-text">EU NO CONTROLE</h1>
-            <p className="text-xs text-muted-foreground mt-1">Gestão de Buquês</p>
+            <p className="text-xs text-muted-foreground mt-1">Gestão de Produtos</p>
           </div>
 
           <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -39,7 +39,7 @@ export default function RootLayout({
             </Link>
             <Link href="/buques" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors group">
               <Flower2 size={20} className="text-secondary group-hover:scale-110 transition-transform" />
-              <span>Buquês</span>
+              <span>Produtos</span>
             </Link>
             <Link href="/vendas" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors group">
               <ShoppingCart size={20} className="text-accent group-hover:scale-110 transition-transform" />
@@ -77,7 +77,7 @@ export default function RootLayout({
             <div className="p-2 rounded-xl group-active:bg-secondary/20 transition-colors">
               <Flower2 size={22} className="text-secondary" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-tighter opacity-70 group-active:opacity-100">Buquês</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter opacity-70 group-active:opacity-100">Produtos</span>
           </Link>
           <Link href="/vendas" className="flex flex-col items-center gap-1 group">
             <div className="p-2 rounded-xl group-active:bg-accent/20 transition-colors">

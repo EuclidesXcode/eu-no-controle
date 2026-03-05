@@ -79,8 +79,8 @@ export default function NovoBuquePage() {
 
             router.push("/buques");
         } catch (error) {
-            console.error("Erro ao salvar buquê:", error);
-            alert("Erro ao salvar buquê. Verifique os dados.");
+            console.error("Erro ao salvar produto:", error);
+            alert("Erro ao salvar produto. Verifique os dados.");
         } finally {
             setLoading(false);
         }
@@ -97,7 +97,7 @@ export default function NovoBuquePage() {
                     <Link href="/buques" className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                         <ChevronLeft size={24} />
                     </Link>
-                    <h2 className="text-3xl font-bold tracking-tight">Novo Buquê</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">Novo Produto</h2>
                 </div>
             </div>
 
@@ -108,12 +108,12 @@ export default function NovoBuquePage() {
                         <h3 className="text-lg font-semibold border-b border-border pb-2">Informações Básicas</h3>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Nome do Buquê</label>
+                            <label className="text-sm font-medium text-muted-foreground">Nome do Produto</label>
                             <input
                                 required
                                 type="text"
                                 className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50"
-                                placeholder="Ex: Buquê de 12 Rosas Vermelhas"
+                                placeholder="Ex: Produto Especial ou Buquê de Rosas"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
@@ -257,7 +257,7 @@ export default function NovoBuquePage() {
                         className="w-full py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
                     >
                         <Save size={20} className="group-hover:scale-110 transition-transform" />
-                        {loading ? "Salvando..." : "Salvar Buquê"}
+                        {loading ? "Salvando..." : "Salvar Produto"}
                     </button>
                 </div>
             </form>

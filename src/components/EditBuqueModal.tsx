@@ -101,7 +101,7 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
             onClose();
         } catch (error) {
             console.error("Erro ao atualizar:", error);
-            alert("Erro ao atualizar buquê.");
+            alert("Erro ao atualizar produto.");
         } finally {
             setLoading(false);
         }
@@ -126,7 +126,7 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                 {/* Header */}
                 <div className="shrink-0 p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                     <div>
-                        <h2 className="text-xl font-bold gradient-text">Editar Buquê</h2>
+                        <h2 className="text-xl font-bold gradient-text">Editar Produto</h2>
                         <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">ID: {buque.id}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-muted-foreground hover:text-white">

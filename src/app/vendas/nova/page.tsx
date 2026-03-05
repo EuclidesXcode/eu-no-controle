@@ -79,7 +79,7 @@ export default function NovaVendaPage() {
                 <div className="p-6 glass-card rounded-xl space-y-4">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Search size={20} className="text-secondary" />
-                        1. Selecione o Buquê
+                        1. Selecione o Produto
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">

@@ -56,13 +56,13 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Dashboard de Vendas</h2>
-        <p className="text-muted-foreground">Bem-vindo ao seu centro de controle de buquês.</p>
+        <p className="text-muted-foreground">Bem-vindo ao seu centro de controle de produtos.</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Receita Total" value={`R$ ${stats.revenue.toLocaleString('pt-BR')}`} icon={<DollarSign className="text-primary" />} trend="+12%" />
-        <StatCard title="Buquês Vendidos" value={stats.salesCount.toString()} icon={<Package className="text-secondary" />} trend="+5%" />
+        <StatCard title="Produtos Vendidos" value={stats.salesCount.toString()} icon={<Package className="text-secondary" />} trend="+5%" />
         <StatCard title="Novos Clientes" value="--" icon={<Users className="text-accent" />} trend="+0%" />
         <StatCard title="Lucro Líquido" value={`R$ ${stats.profit.toLocaleString('pt-BR')}`} icon={<TrendingUp className="text-primary" />} trend="+8%" />
       </div>

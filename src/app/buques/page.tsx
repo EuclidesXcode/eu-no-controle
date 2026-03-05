@@ -30,7 +30,7 @@ export default function BuquesPage() {
             if (error) throw error;
             setBuques(data || []);
         } catch (error) {
-            console.error("Erro ao buscar buquês:", error);
+            console.error("Erro ao buscar produtos:", error);
         } finally {
             setLoading(false);
         }
@@ -43,7 +43,7 @@ export default function BuquesPage() {
 
     async function handleDelete(id: string, e: React.MouseEvent) {
         e.stopPropagation();
-        if (!confirm("Tem certeza que deseja excluir este buquê?")) return;
+        if (!confirm("Tem certeza que deseja excluir este produto?")) return;
 
         const { error } = await supabase.from("bouquets").delete().eq('id', id);
         if (!error) fetchBuques();
@@ -62,7 +62,7 @@ export default function BuquesPage() {
                     </div>
                     <div>
                         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Catálogo</h2>
-                        <p className="text-xs md:text-sm text-muted-foreground">Gerencie seus buquês e preços.</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">Gerencie seus produtos e preços.</p>
                     </div>
                 </div>
                 <Link
@@ -70,7 +70,7 @@ export default function BuquesPage() {
                     className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 md:py-2 rounded-2xl md:rounded-lg transition-all shadow-lg shadow-primary/20 font-bold text-sm md:text-base"
                 >
                     <Plus size={20} />
-                    Novo Buquê
+                    Novo Produto
                 </Link>
             </div>
 
@@ -80,7 +80,7 @@ export default function BuquesPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <input
                             type="text"
-                            placeholder="Buscar buquê..."
+                            placeholder="Buscar produto..."
                             className="w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -110,7 +110,7 @@ export default function BuquesPage() {
                                 </tr>
                             ) : filteredBuques.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">Nenhum buquê encontrado.</td>
+                                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">Nenhum produto encontrado.</td>
                                 </tr>
                             ) : (
                                 filteredBuques.map((buque) => (
@@ -165,7 +165,7 @@ export default function BuquesPage() {
                     {loading ? (
                         <div className="p-10 text-center text-muted-foreground">Carregando...</div>
                     ) : filteredBuques.length === 0 ? (
-                        <div className="p-10 text-center text-muted-foreground">Nenhum buquê encontrado.</div>
+                        <div className="p-10 text-center text-muted-foreground">Nenhum produto encontrado.</div>
                     ) : (
                         filteredBuques.map((buque) => (
                             <div
