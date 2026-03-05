@@ -10,6 +10,9 @@ export default function Dashboard() {
     revenue: 0,
     salesCount: 0,
     profit: 0,
+    productCount: 0,
+    totalCommission: 0,
+    totalCosts: 0,
   });
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,19 +22,32 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
+        // Fetch Sales
         const { data: salesData } = await supabase
           .from("sales")
-          .select("*, bouquets(name)");
+          .select("*, bouquets(name)")
+          .order('created_at', { ascending: false });
+
+        // Fetch Products Count
+        const { count: productCount } = await supabase
+          .from("bouquets")
+          .select('*', { count: 'exact', head: true });
 
         if (salesData) {
-          const revenue = salesData.reduce((acc, s) => acc + s.total_price, 0);
-          const profit = salesData.reduce((acc, s) => acc + (s.total_price - (s.cost_price_at_sale || 0) - (s.tax_value || 0)), 0);
+          const revenue = salesData.reduce((acc, s) => acc + (s.total_price || 0), 0);
+          const totalCommission = salesData.reduce((acc, s) => acc + (s.commission_value || 0), 0);
+          const totalCosts = salesData.reduce((acc, s) => acc + (s.cost_price_at_sale || 0) + (s.tax_value || 0), 0);
+          const profit = revenue - totalCosts - totalCommission;
+
           setStats({
             revenue,
             salesCount: salesData.length,
+            productCount: productCount || 0,
+            totalCommission,
+            totalCosts,
             profit,
           });
-          setRecentSales(salesData.slice(0, 5));
+          setRecentSales(salesData.slice(0, 8));
         }
       } catch (err) {
         console.error(err);
@@ -42,72 +58,106 @@ export default function Dashboard() {
     fetchStats();
   }, []);
 
+  // Use real data or a dynamic placeholder for the chart
   const chartData = [
-    { name: 'Seg', sales: 400 },
-    { name: 'Ter', sales: 300 },
-    { name: 'Qua', sales: 200 },
-    { name: 'Qui', sales: 278 },
-    { name: 'Sex', sales: 189 },
-    { name: 'Sáb', sales: 239 },
-    { name: 'Dom', sales: 349 },
+    { name: 'Total', sales: stats.revenue },
+    { name: 'Custos', sales: stats.totalCosts },
+    { name: 'Comissão', sales: stats.totalCommission },
+    { name: 'Lucro', sales: stats.profit },
   ];
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard de Vendas</h2>
-        <p className="text-muted-foreground">Bem-vindo ao seu centro de controle de produtos.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard de Produtos</h2>
+        <p className="text-muted-foreground">Visão geral do desempenho do seu negócio.</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Receita Total" value={`R$ ${stats.revenue.toLocaleString('pt-BR')}`} icon={<DollarSign className="text-primary" />} trend="+12%" />
-        <StatCard title="Produtos Vendidos" value={stats.salesCount.toString()} icon={<Package className="text-secondary" />} trend="+5%" />
-        <StatCard title="Novos Clientes" value="--" icon={<Users className="text-accent" />} trend="+0%" />
-        <StatCard title="Lucro Líquido" value={`R$ ${stats.profit.toLocaleString('pt-BR')}`} icon={<TrendingUp className="text-primary" />} trend="+8%" />
+        <StatCard
+          title="Receita Operacional"
+          value={`R$ ${stats.revenue.toFixed(2)}`}
+          icon={<DollarSign className="text-primary" />}
+          trend="+0%"
+        />
+        <StatCard
+          title="Produtos Ativos"
+          value={stats.productCount.toString()}
+          icon={<Package className="text-secondary" />}
+          trend="Ativos"
+        />
+        <StatCard
+          title="Total Comissões"
+          value={`R$ ${stats.totalCommission.toFixed(2)}`}
+          icon={<Users className="text-accent" />}
+          trend="Fixa R$ 7.00"
+        />
+        <StatCard
+          title="Lucro Líquido"
+          value={`R$ ${stats.profit.toFixed(2)}`}
+          icon={<TrendingUp className="text-primary" />}
+          trend="Realizado"
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className="md:col-span-1 lg:col-span-2">
+          <StatCard
+            title="Gastos (Custo + Taxas)"
+            value={`R$ ${stats.totalCosts.toFixed(2)}`}
+            icon={<ArrowDownRight className="text-destructive" />}
+            trend="Total"
+          />
+        </div>
+        <div className="md:col-span-1 lg:col-span-2">
+          <StatCard
+            title="Vendas Realizadas"
+            value={stats.salesCount.toString()}
+            icon={<ArrowUpRight className="text-accent" />}
+            trend="Pedidos"
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-7">
         {/* Sales Chart */}
         <div className="md:col-span-4 p-6 glass-card rounded-xl border border-white/5">
-          <h3 className="text-lg font-semibold mb-6">Desempenho Semanal</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold">Distribuição Financeira</h3>
+          </div>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#313244" vertical={false} />
                 <XAxis dataKey="name" stroke="#bac2de" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#bac2de" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#181825', border: '1px solid #313244', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#181825', border: '1px solid #313244', borderRadius: '12px' }}
                   itemStyle={{ color: '#f8fafc' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                 />
-                <Area type="monotone" dataKey="sales" stroke="#ec4899" fillOpacity={1} fill="url(#colorSales)" strokeWidth={3} />
-              </AreaChart>
+                <Bar dataKey="sales" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={40} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Recent Sales */}
         <div className="md:col-span-3 p-6 glass-card rounded-xl border border-white/5">
-          <h3 className="text-lg font-semibold mb-6">Vendas Recentes</h3>
+          <h3 className="text-lg font-semibold mb-6">Últimas Atividades</h3>
           <div className="space-y-6">
             {loading ? (
-              <p className="text-sm text-muted-foreground">Carregando...</p>
+              <p className="text-sm text-muted-foreground animate-pulse">Consultando banco de dados...</p>
             ) : recentSales.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma venda recente.</p>
+              <p className="text-sm text-muted-foreground">Aguardando primeira venda.</p>
             ) : (
               recentSales.map((sale) => (
                 <RecentSale
                   key={sale.id}
                   name={sale.payment_method}
                   item={sale.bouquets?.name}
-                  price={`R$ ${sale.total_price.toLocaleString('pt-BR')}`}
+                  price={`R$ ${sale.total_price.toFixed(2)}`}
                 />
               ))
             )}
