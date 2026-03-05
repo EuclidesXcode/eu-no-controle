@@ -37,7 +37,11 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                 card_tax: buque.card_tax?.toString() || "4.99",
                 images: buque.images || [],
                 fixed_commission: buque.fixed_commission?.toString() || "7.00",
-                category: buque.category || "premium"
+                category: (() => {
+                    const known = ['premium', 'Mini Buquês', 'Flores individuais', 'Cestas', 'Presentes', 'Decorativas', 'Caixas Surpresa'];
+                    if (!buque.category || known.includes(buque.category)) return buque.category || "premium";
+                    return `custom:${buque.category}`;
+                })()
             });
         }
     }, [buque]);
@@ -92,7 +96,7 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                     card_tax: parseFloat(formData.card_tax),
                     images: formData.images,
                     fixed_commission: parseFloat(formData.fixed_commission),
-                    category: formData.category
+                    category: formData.category.replace("custom:", "")
                 })
                 .eq('id', buque.id);
 
@@ -151,21 +155,44 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium text-muted-foreground">Categoria</label>
-                                    <select
-                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none"
-                                        value={formData.category}
-                                        onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                    >
-                                        <option value="premium">Premium</option>
-                                        <option value="Mini Buquês">Mini Buquês</option>
-                                        <option value="Flores individuais">Flores individuais</option>
-                                        <option value="Cestas">Cestas</option>
-                                        <option value="Presentes">Presentes</option>
-                                        <option value="Decorativas">Decorativas</option>
-                                        <option value="Caixas Surpresa">Caixas Surpresa</option>
-                                    </select>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const isManual = formData.category.startsWith("custom:");
+                                                setFormData({ ...formData, category: isManual ? "premium" : "custom:" });
+                                            }}
+                                            className="text-[10px] font-bold uppercase text-primary hover:underline"
+                                        >
+                                            {formData.category.startsWith("custom:") ? "Escolher da lista" : "Digitar manualmente"}
+                                        </button>
+                                    </div>
+
+                                    {formData.category.startsWith("custom:") ? (
+                                        <input
+                                            type="text"
+                                            placeholder="Digite a categoria"
+                                            className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none text-sm"
+                                            value={formData.category.replace("custom:", "")}
+                                            onChange={e => setFormData({ ...formData, category: `custom:${e.target.value}` })}
+                                        />
+                                    ) : (
+                                        <select
+                                            className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none text-sm"
+                                            value={formData.category}
+                                            onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                        >
+                                            <option value="premium">Premium</option>
+                                            <option value="Mini Buquês">Mini Buquês</option>
+                                            <option value="Flores individuais">Flores individuais</option>
+                                            <option value="Cestas">Cestas</option>
+                                            <option value="Presentes">Presentes</option>
+                                            <option value="Decorativas">Decorativas</option>
+                                            <option value="Caixas Surpresa">Caixas Surpresa</option>
+                                        </select>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-muted-foreground">Descrição Detalhada</label>
