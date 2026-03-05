@@ -20,6 +20,7 @@ export default function NovoBuquePage() {
         cost_price: "",
         card_tax: "4.99", // Default tax
         images: [] as string[],
+        category: "premium",
     });
 
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -70,6 +71,7 @@ export default function NovoBuquePage() {
                     cost_price: parseFloat(formData.cost_price),
                     card_tax: parseFloat(formData.card_tax),
                     images: formData.images,
+                    category: formData.category,
                 },
             ]);
 
@@ -115,6 +117,23 @@ export default function NovoBuquePage() {
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Categoria</label>
+                            <select
+                                className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50"
+                                value={formData.category}
+                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                            >
+                                <option value="premium">Premium</option>
+                                <option value="Mini Buquês">Mini Buquês</option>
+                                <option value="Flores individuais">Flores individuais</option>
+                                <option value="Cestas">Cestas</option>
+                                <option value="Presentes">Presentes</option>
+                                <option value="Decorativas">Decorativas</option>
+                                <option value="Caixas Surpresa">Caixas Surpresa</option>
+                            </select>
                         </div>
 
                         <div className="space-y-2">

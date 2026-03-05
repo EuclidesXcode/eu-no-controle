@@ -23,7 +23,8 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
         cost_price: "",
         card_tax: "4.99",
         images: [] as string[],
-        fixed_commission: "7.00"
+        fixed_commission: "7.00",
+        category: "premium"
     });
 
     useEffect(() => {
@@ -35,7 +36,8 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                 cost_price: buque.cost_price?.toString() || "",
                 card_tax: buque.card_tax?.toString() || "4.99",
                 images: buque.images || [],
-                fixed_commission: buque.fixed_commission?.toString() || "7.00"
+                fixed_commission: buque.fixed_commission?.toString() || "7.00",
+                category: buque.category || "premium"
             });
         }
     }, [buque]);
@@ -89,7 +91,8 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                     cost_price: parseFloat(formData.cost_price),
                     card_tax: parseFloat(formData.card_tax),
                     images: formData.images,
-                    fixed_commission: parseFloat(formData.fixed_commission)
+                    fixed_commission: parseFloat(formData.fixed_commission),
+                    category: formData.category
                 })
                 .eq('id', buque.id);
 
@@ -147,6 +150,22 @@ export default function EditBuqueModal({ buque, isOpen, onClose, onSave }: EditM
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                                    <select
+                                        className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/50 outline-none"
+                                        value={formData.category}
+                                        onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                    >
+                                        <option value="premium">Premium</option>
+                                        <option value="Mini Buquês">Mini Buquês</option>
+                                        <option value="Flores individuais">Flores individuais</option>
+                                        <option value="Cestas">Cestas</option>
+                                        <option value="Presentes">Presentes</option>
+                                        <option value="Decorativas">Decorativas</option>
+                                        <option value="Caixas Surpresa">Caixas Surpresa</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-muted-foreground">Descrição Detalhada</label>

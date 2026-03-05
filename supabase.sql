@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS bouquets (
     card_tax NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     images TEXT[] DEFAULT '{}',
     fixed_commission NUMERIC(10, 2) NOT NULL DEFAULT 7.00,
+    category TEXT DEFAULT 'premium',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

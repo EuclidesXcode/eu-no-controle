@@ -95,6 +95,7 @@ export default function BuquesPage() {
                             <tr>
                                 <th className="px-6 py-4">Foto</th>
                                 <th className="px-6 py-4">Nome</th>
+                                <th className="px-6 py-4">Categoria</th>
                                 <th className="px-6 py-4">Venda</th>
                                 <th className="px-6 py-4">Custo</th>
                                 <th className="px-6 py-4">Taxa</th>
@@ -128,6 +129,7 @@ export default function BuquesPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-semibold">{buque.name}</td>
+                                        <td className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-widest">{buque.category || 'premium'}</td>
                                         <td className="px-6 py-4 font-bold text-lg text-primary">R$ {buque.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-6 py-4 text-muted-foreground text-sm">R$ {buque.cost_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-6 py-4 text-muted-foreground text-sm">{buque.card_tax}%</td>
@@ -180,6 +182,7 @@ export default function BuquesPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-base truncate">{buque.name}</h4>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{buque.category || 'premium'}</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-primary font-bold">R$ {buque.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                                         <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-bold">
