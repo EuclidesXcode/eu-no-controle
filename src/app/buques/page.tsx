@@ -13,19 +13,44 @@ export default function BuquesPage() {
     const [selectedBuque, setSelectedBuque] = useState<any>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+    const [totalProducts, setTotalProducts] = useState(0);
+
     const supabase = createClient();
 
     useEffect(() => {
+        setCurrentPage(1);
+        fetchTotalCount();
         fetchBuques();
-    }, []);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        fetchBuques();
+    }, [currentPage]);
+
+    async function fetchTotalCount() {
+        let query = supabase.from("bouquets").select("*", { count: 'exact', head: true });
+        if (searchTerm) query = query.ilike('name', `%${searchTerm}%`);
+        const { count } = await query;
+        setTotalProducts(count || 0);
+    }
 
     async function fetchBuques() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage - 1;
+
+            let query = supabase
                 .from("bouquets")
                 .select("*")
-                .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false })
+                .range(start, end);
+
+            if (searchTerm) query = query.ilike('name', `%${searchTerm}%`);
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setBuques(data || []);
@@ -46,12 +71,13 @@ export default function BuquesPage() {
         if (!confirm("Tem certeza que deseja excluir este produto?")) return;
 
         const { error } = await supabase.from("bouquets").delete().eq('id', id);
-        if (!error) fetchBuques();
+        if (!error) {
+            fetchTotalCount();
+            fetchBuques();
+        }
     }
 
-    const filteredBuques = buques.filter(b =>
-        b.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const totalPages = Math.ceil(totalProducts / itemsPerPage);
 
     return (
         <div className="space-y-6 animate-fade-in pb-12">
@@ -106,14 +132,14 @@ export default function BuquesPage() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">Carregando...</td>
+                                    <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">Carregando...</td>
                                 </tr>
-                            ) : filteredBuques.length === 0 ? (
+                            ) : buques.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">Nenhum produto encontrado.</td>
+                                    <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">Nenhum produto encontrado.</td>
                                 </tr>
                             ) : (
-                                filteredBuques.map((buque) => (
+                                buques.map((buque) => (
                                     <tr
                                         key={buque.id}
                                         onClick={() => handleEditClick(buque)}
@@ -164,10 +190,10 @@ export default function BuquesPage() {
                 <div className="md:hidden divide-y divide-border">
                     {loading ? (
                         <div className="p-10 text-center text-muted-foreground">Carregando...</div>
-                    ) : filteredBuques.length === 0 ? (
+                    ) : buques.length === 0 ? (
                         <div className="p-10 text-center text-muted-foreground">Nenhum produto encontrado.</div>
                     ) : (
-                        filteredBuques.map((buque) => (
+                        buques.map((buque) => (
                             <div
                                 key={buque.id}
                                 onClick={() => handleEditClick(buque)}
@@ -197,6 +223,36 @@ export default function BuquesPage() {
                         ))
                     )}
                 </div>
+
+                {/* Pagination Footer */}
+                {!loading && totalProducts > itemsPerPage && (
+                    <div className="p-4 bg-white/5 border-t border-border flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                            Mostrando <span className="font-bold text-foreground">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-bold text-foreground">{Math.min(currentPage * itemsPerPage, totalProducts)}</span> de <span className="font-bold text-foreground">{totalProducts}</span>
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(p => p - 1)}
+                                className="px-3 py-1 bg-background border border-border rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-white/5 transition-colors"
+                            >
+                                Anterior
+                            </button>
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs font-bold px-2">{currentPage}</span>
+                                <span className="text-xs text-muted-foreground">/</span>
+                                <span className="text-xs text-muted-foreground px-2">{totalPages}</span>
+                            </div>
+                            <button
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCurrentPage(p => p + 1)}
+                                className="px-3 py-1 bg-background border border-border rounded-lg text-xs font-bold disabled:opacity-30 hover:bg-white/5 transition-colors"
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <EditBuqueModal

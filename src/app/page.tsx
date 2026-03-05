@@ -33,22 +33,20 @@ export default function Dashboard() {
           .from("bouquets")
           .select('*', { count: 'exact', head: true });
 
-        if (salesData) {
-          const revenue = salesData.reduce((acc, s) => acc + (s.total_price || 0), 0);
-          const totalCommission = salesData.reduce((acc, s) => acc + (s.commission_value || 0), 0);
-          const totalCosts = salesData.reduce((acc, s) => acc + (s.cost_price_at_sale || 0) + (s.tax_value || 0), 0);
-          const profit = revenue - totalCosts - totalCommission;
+        const revenue = (salesData || []).reduce((acc, s) => acc + (s.total_price || 0), 0);
+        const totalCommission = (salesData || []).reduce((acc, s) => acc + (s.commission_value || 0), 0);
+        const totalCosts = (salesData || []).reduce((acc, s) => acc + (s.cost_price_at_sale || 0) + (s.tax_value || 0), 0);
+        const profit = revenue - totalCosts - totalCommission;
 
-          setStats({
-            revenue,
-            salesCount: salesData.length,
-            productCount: productCount || 0,
-            totalCommission,
-            totalCosts,
-            profit,
-          });
-          setRecentSales(salesData.slice(0, 8));
-        }
+        setStats({
+          revenue,
+          salesCount: (salesData || []).length,
+          productCount: productCount || 0,
+          totalCommission,
+          totalCosts,
+          profit,
+        });
+        setRecentSales((salesData || []).slice(0, 8));
       } catch (err) {
         console.error(err);
       } finally {
