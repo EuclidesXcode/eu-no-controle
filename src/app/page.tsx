@@ -25,27 +25,31 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch Sales — use sale_date (not created_at)
-        // Include bouquet cost fields as fallback for legacy sales with null values
+        // Fetch sales with just the name join (safe)
         const { data: salesData, error: salesError } = await supabase
           .from("sales")
-          .select("*, bouquets(name, cost_price, card_tax, fixed_commission)")
+          .select("*, bouquets(name)")
           .order('sale_date', { ascending: false });
 
-        if (salesError) throw salesError;
+        if (salesError) {
+          console.error("Erro ao buscar vendas:", salesError);
+        }
 
-        // Fetch Products Count
-        const { count: productCount } = await supabase
+        // Fetch bouquets separately for cost fallback map
+        const { data: bouquetsData, count: productCount } = await supabase
           .from("bouquets")
-          .select('*', { count: 'exact', head: true });
+          .select('id, cost_price, fixed_commission, card_tax', { count: 'exact' });
+
+        // Build bouquet lookup map: id → cost fields
+        const bouquetMap: Record<string, any> = {};
+        (bouquetsData || []).forEach((b: any) => { bouquetMap[b.id] = b; });
 
         const sales = salesData || [];
 
-        // Helper: resolve effective cost/tax/commission
-        // For legacy sales with null values, fall back to current bouquet data
-        const effectiveCost = (s: any) => s.cost_price_at_sale ?? (s.bouquets?.cost_price || 0);
-        const effectiveTax = (s: any) => s.tax_value ?? 0; // Pix = 0; card fee uses bouquet card_tax if needed
-        const effectiveComm = (s: any) => s.commission_value ?? (s.bouquets?.fixed_commission ?? 7);
+        // Helper: resolve effective values — uses sale snapshot, falls back to current bouquet
+        const effectiveCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
+        const effectiveTax = (s: any) => s.tax_value ?? 0;
+        const effectiveComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
 
         const revenue = sales.reduce((acc, s) => acc + (s.total_price || 0), 0);
         const totalCommission = sales.reduce((acc, s) => acc + effectiveComm(s), 0);
@@ -84,7 +88,7 @@ export default function Dashboard() {
           .map(([name, vals]) => ({
             name,
             Custo: +vals.custo.toFixed(2),
-            Comissão: +vals.comissao.toFixed(2),
+            'Comissão': +vals.comissao.toFixed(2),
             Taxa: +vals.taxa.toFixed(2),
             Lucro: +vals.lucro.toFixed(2),
           }));

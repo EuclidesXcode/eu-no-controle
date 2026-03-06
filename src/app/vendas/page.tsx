@@ -21,14 +21,10 @@ export default function VendasPage() {
     async function fetchSales() {
         try {
             setLoading(true);
+            // Simple join — just bouquet name
             const { data, error } = await supabase
                 .from("sales")
-                .select(`
-          *,
-          bouquets (
-            name, cost_price, card_tax, fixed_commission
-          )
-        `)
+                .select("*, bouquets(name)")
                 .order("sale_date", { ascending: false });
 
             if (error) throw error;
@@ -40,9 +36,25 @@ export default function VendasPage() {
         }
     }
 
+    // Build bouquet cost lookup on mount
+    const [bouquetMap, setBouquetMap] = useState<Record<string, any>>({});
+    useEffect(() => {
+        supabase.from("bouquets").select("id, cost_price, fixed_commission, card_tax").then(({ data }) => {
+            const map: Record<string, any> = {};
+            (data || []).forEach((b: any) => { map[b.id] = b; });
+            setBouquetMap(map);
+        });
+    }, []);
+
+    // Resolve effective values — snapshot first, then bouquet fallback
+    const effCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
+    const effTax = (s: any) => s.tax_value ?? 0;
+    const effComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
+    const calcProfit = (s: any) => s.total_price - effCost(s) - effTax(s) - effComm(s);
+
     const totals = sales.reduce((acc, sale) => ({
         revenue: acc.revenue + sale.total_price,
-        profit: acc.profit + (sale.total_price - (sale.cost_price_at_sale || 0) - (sale.tax_value || 0) - (sale.commission_value || 7))
+        profit: acc.profit + calcProfit(sale)
     }), { revenue: 0, profit: 0 });
 
     const filteredSales = sales.filter(s => {
@@ -53,12 +65,6 @@ export default function VendasPage() {
             (s.buyer_name?.toLowerCase() || '').includes(term)
         );
     });
-
-    // Resolve effective values with bouquet fallback for legacy null sales
-    const effCost = (s: any) => s.cost_price_at_sale ?? (s.bouquets?.cost_price || 0);
-    const effTax = (s: any) => s.tax_value ?? 0;
-    const effComm = (s: any) => s.commission_value ?? (s.bouquets?.fixed_commission ?? 7);
-    const calcProfit = (s: any) => s.total_price - effCost(s) - effTax(s) - effComm(s);
 
     return (
         <div className="space-y-6 animate-fade-in pb-12">
