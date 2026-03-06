@@ -19,7 +19,10 @@ export default function Dashboard() {
   });
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [donutData, setDonutData] = useState<any[]>([]);
+  const [donutData, setDonutData] = useState<any[]>([
+    { name: 'Efetuadas', value: 0 },
+    { name: 'Canceladas', value: 0 },
+  ]);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
@@ -27,58 +30,60 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch sales with just the name join (safe)
         const { data: salesData, error: salesError } = await supabase
           .from("sales")
           .select("*, bouquets(name)")
           .order('sale_date', { ascending: false });
 
-        if (salesError) {
-          console.error("Erro ao buscar vendas:", salesError);
-        }
+        if (salesError) console.error("Erro ao buscar vendas:", salesError);
 
-        // Fetch bouquets separately for cost fallback map
+        // Fetch bouquets for cost fallback
         const { data: bouquetsData, count: productCount } = await supabase
           .from("bouquets")
           .select('id, cost_price, fixed_commission, card_tax', { count: 'exact' });
 
-        // Build bouquet lookup map: id → cost fields
         const bouquetMap: Record<string, any> = {};
         (bouquetsData || []).forEach((b: any) => { bouquetMap[b.id] = b; });
 
-        const sales = salesData || [];
+        const allSales = salesData || [];
 
-        // Helper: resolve effective values — uses sale snapshot, falls back to current bouquet
-        const effectiveCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
-        const effectiveTax = (s: any) => s.tax_value ?? 0;
-        const effectiveComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
+        // Split active vs cancelled (null status = treat as active/completed)
+        const activeSales = allSales.filter(s => s.status !== 'cancelled');
+        const cancelledSales = allSales.filter(s => s.status === 'cancelled');
 
-        const revenue = sales.reduce((acc, s) => acc + (s.total_price || 0), 0);
-        const totalCommission = sales.reduce((acc, s) => acc + effectiveComm(s), 0);
-        const totalCosts = sales.reduce((acc, s) => acc + effectiveCost(s) + effectiveTax(s), 0);
-        const profit = revenue - totalCosts - totalCommission;
+        // Cost helpers
+        const effCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
+        const effTax = (s: any) => s.tax_value ?? 0;
+        const effComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
+
+        // Only count active sales for revenue/profit
+        const revenue = activeSales.reduce((acc, s) => acc + (s.total_price || 0), 0);
+        const totalCommission = activeSales.reduce((acc, s) => acc + effComm(s), 0);
+        const totalCosts = activeSales.reduce((acc, s) => acc + effCost(s) + effTax(s), 0);
+        const cancellationLoss = cancelledSales.reduce((acc, s) => acc + (s.cancellation_cost || 0), 0);
+        const profit = revenue - totalCosts - totalCommission - cancellationLoss;
 
         setStats({
           revenue,
-          salesCount: sales.length,
+          salesCount: allSales.length,
           productCount: productCount || 0,
           totalCommission,
           totalCosts,
           profit,
-          cancelledCount: 0, // updated later after donut calculation
+          cancelledCount: cancelledSales.length,
         });
 
-        setRecentSales(sales.slice(0, 8));
+        setRecentSales(allSales.slice(0, 8));
 
-        // Build monthly chart data (last 6 months)
+        // Monthly chart — only active sales
         const monthlyMap: Record<string, { custo: number; comissao: number; taxa: number; lucro: number }> = {};
-        sales.forEach((s) => {
+        activeSales.forEach((s) => {
           const date = new Date(s.sale_date);
           const key = format(date, 'MMM/yy', { locale: ptBR });
           if (!monthlyMap[key]) monthlyMap[key] = { custo: 0, comissao: 0, taxa: 0, lucro: 0 };
-          const custo = effectiveCost(s);
-          const comissao = effectiveComm(s);
-          const taxa = effectiveTax(s);
+          const custo = effCost(s);
+          const comissao = effComm(s);
+          const taxa = effTax(s);
           const lucro = (s.total_price || 0) - custo - comissao - taxa;
           monthlyMap[key].custo += custo;
           monthlyMap[key].comissao += comissao;
@@ -98,15 +103,11 @@ export default function Dashboard() {
 
         setChartData(chart.length > 0 ? chart : [{ name: 'Sem dados', Custo: 0, 'Comissão': 0, Taxa: 0, Lucro: 0 }]);
 
-        // Donut chart: completed vs cancelled
-        const completed = sales.filter(s => s.status !== 'cancelled').length;
-        const cancelled = sales.filter(s => s.status === 'cancelled').length;
+        // Donut: always set 2 entries so chart always renders
         setDonutData([
-          { name: 'Efetuadas', value: completed || 0 },
-          { name: 'Canceladas', value: cancelled || 0 },
+          { name: 'Efetuadas', value: activeSales.length },
+          { name: 'Canceladas', value: cancelledSales.length },
         ]);
-
-        setStats(prev => ({ ...prev, cancelledCount: cancelled }));
 
       } catch (err) {
         console.error("Erro no dashboard:", err);
