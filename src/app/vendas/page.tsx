@@ -117,6 +117,7 @@ export default function VendasPage() {
                         <thead className="bg-white/5 text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
                             <tr>
                                 <th className="px-6 py-4">Data/Hora</th>
+                                <th className="px-6 py-4">Comprador</th>
                                 <th className="px-6 py-4">Ítem</th>
                                 <th className="px-6 py-4">Metodo</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
@@ -126,11 +127,11 @@ export default function VendasPage() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">Buscando vendas...</td>
+                                    <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">Buscando vendas...</td>
                                 </tr>
                             ) : filteredSales.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">Nenhuma venda registrada.</td>
+                                    <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">Nenhuma venda registrada.</td>
                                 </tr>
                             ) : (
                                 filteredSales.map((sale) => (
@@ -138,7 +139,15 @@ export default function VendasPage() {
                                         <td className="px-6 py-4 text-xs text-muted-foreground">
                                             {format(new Date(sale.sale_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                                         </td>
-                                        <td className="px-6 py-4 font-semibold">
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">{sale.buyer_name || "N/A"}</span>
+                                                {sale.wants_to_register && (
+                                                    <span className="text-[9px] text-accent font-bold uppercase tracking-wider">Novo Cliente ✓</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 font-semibold text-sm">
                                             {sale.bouquets?.name || "Deletado"}
                                             <span className="ml-2 text-[10px] bg-white/5 px-2 py-1 rounded-full text-muted-foreground">x{sale.quantity}</span>
                                         </td>
@@ -150,8 +159,8 @@ export default function VendasPage() {
                                                 {sale.payment_method}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-medium">R$ {sale.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-accent">
+                                        <td className="px-6 py-4 text-right font-medium text-sm">R$ {sale.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-6 py-4 text-right font-bold text-accent text-sm">
                                             R$ {(sale.total_price - (sale.cost_price_at_sale || 0) - (sale.tax_value || 0) - (sale.commission_value || 7)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </td>
                                     </tr>
@@ -176,6 +185,10 @@ export default function VendasPage() {
                                             {format(new Date(sale.sale_date), "dd MMM, HH:mm", { locale: ptBR })}
                                         </span>
                                         <h4 className="font-bold text-base leading-tight mt-1">{sale.bouquets?.name}</h4>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs text-muted-foreground font-medium">Comprador: {sale.buyer_name || "N/A"}</span>
+                                            {sale.wants_to_register && <span className="text-[9px] text-accent font-bold">✓</span>}
+                                        </div>
                                         <div className="flex items-center gap-2 mt-2">
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${sale.payment_method === 'Pix' ? 'bg-accent/20 text-accent' : 'bg-primary/20 text-primary'}`}>
                                                 {sale.payment_method}
@@ -195,6 +208,7 @@ export default function VendasPage() {
                         ))
                     )}
                 </div>
+
             </div>
         </div>
     );
