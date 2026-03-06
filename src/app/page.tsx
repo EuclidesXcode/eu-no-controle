@@ -47,21 +47,24 @@ export default function Dashboard() {
 
         const allSales = salesData || [];
 
-        // Split active vs cancelled (null status = treat as active/completed)
+        // Split for donut chart
         const activeSales = allSales.filter(s => s.status !== 'cancelled');
         const cancelledSales = allSales.filter(s => s.status === 'cancelled');
 
-        // Cost helpers
+        // Exact same helpers as vendas/page.tsx
         const effCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
         const effTax = (s: any) => s.tax_value ?? 0;
         const effComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
+        // For cancelled: only production cost is the loss (refund_amount is informational)
+        const calcProfit = (s: any) => s.status === 'cancelled'
+          ? -(s.cancellation_cost || 0)
+          : (s.total_price || 0) - effCost(s) - effTax(s) - effComm(s);
 
-        // Only count active sales for revenue/profit
-        const revenue = activeSales.reduce((acc, s) => acc + (s.total_price || 0), 0);
+        // Revenue = all sales' total_price (same as vendas)
+        const revenue = allSales.reduce((acc, s) => acc + (s.total_price || 0), 0);
+        const profit = allSales.reduce((acc, s) => acc + calcProfit(s), 0);
         const totalCommission = activeSales.reduce((acc, s) => acc + effComm(s), 0);
         const totalCosts = activeSales.reduce((acc, s) => acc + effCost(s) + effTax(s), 0);
-        const cancellationLoss = cancelledSales.reduce((acc, s) => acc + (s.cancellation_cost || 0) + (s.refund_amount || 0), 0);
-        const profit = revenue - totalCosts - totalCommission - cancellationLoss;
 
         setStats({
           revenue,
