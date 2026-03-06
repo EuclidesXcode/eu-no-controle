@@ -57,21 +57,32 @@ export default function Dashboard() {
         setRecentSales(sales.slice(0, 8));
 
         // Build monthly chart data (last 6 months)
-        const monthlyMap: Record<string, { revenue: number; lucro: number }> = {};
+        const monthlyMap: Record<string, { custo: number; comissao: number; taxa: number; lucro: number }> = {};
         sales.forEach((s) => {
           const date = new Date(s.sale_date);
           const key = format(date, 'MMM/yy', { locale: ptBR });
-          if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, lucro: 0 };
-          monthlyMap[key].revenue += s.total_price || 0;
-          const saleProfit = (s.total_price || 0) - (s.cost_price_at_sale || 0) - (s.tax_value || 0) - (s.commission_value ?? 7);
-          monthlyMap[key].lucro += saleProfit;
+          if (!monthlyMap[key]) monthlyMap[key] = { custo: 0, comissao: 0, taxa: 0, lucro: 0 };
+          const custo = s.cost_price_at_sale || 0;
+          const comissao = s.commission_value ?? 7;
+          const taxa = s.tax_value || 0;
+          const lucro = (s.total_price || 0) - custo - comissao - taxa;
+          monthlyMap[key].custo += custo;
+          monthlyMap[key].comissao += comissao;
+          monthlyMap[key].taxa += taxa;
+          monthlyMap[key].lucro += lucro;
         });
 
         const chart = Object.entries(monthlyMap)
           .slice(-6)
-          .map(([name, vals]) => ({ name, Receita: +vals.revenue.toFixed(2), Lucro: +vals.lucro.toFixed(2) }));
+          .map(([name, vals]) => ({
+            name,
+            Custo: +vals.custo.toFixed(2),
+            Comissão: +vals.comissao.toFixed(2),
+            Taxa: +vals.taxa.toFixed(2),
+            Lucro: +vals.lucro.toFixed(2),
+          }));
 
-        setChartData(chart.length > 0 ? chart : [{ name: 'Sem dados', Receita: 0, Lucro: 0 }]);
+        setChartData(chart.length > 0 ? chart : [{ name: 'Sem dados', Custo: 0, Comissão: 0, Taxa: 0, Lucro: 0 }]);
 
       } catch (err) {
         console.error("Erro no dashboard:", err);
@@ -146,14 +157,14 @@ export default function Dashboard() {
         {/* Sales Chart */}
         <div className="md:col-span-4 p-6 glass-card rounded-xl border border-white/5">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">Receita vs Lucro por Mês</h3>
+            <h3 className="text-lg font-semibold">Distribuição por Mês</h3>
           </div>
           <div className="h-[300px]">
             {loading ? (
               <p className="text-sm text-muted-foreground animate-pulse pt-10 text-center">Carregando gráfico...</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} barGap={4}>
+                <BarChart data={chartData} barGap={2} barCategoryGap="25%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#313244" vertical={false} />
                   <XAxis dataKey="name" stroke="#bac2de" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis stroke="#bac2de" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v}`} />
@@ -163,14 +174,18 @@ export default function Dashboard() {
                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                     formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`]}
                   />
-                  <Bar dataKey="Receita" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={28} />
-                  <Bar dataKey="Lucro" fill="#a6e3a1" radius={[6, 6, 0, 0]} barSize={28} />
+                  <Bar dataKey="Custo" fill="#f38ba8" radius={[4, 4, 0, 0]} barSize={18} />
+                  <Bar dataKey="Comissão" fill="#fab387" radius={[4, 4, 0, 0]} barSize={18} />
+                  <Bar dataKey="Taxa" fill="#89b4fa" radius={[4, 4, 0, 0]} barSize={18} />
+                  <Bar dataKey="Lucro" fill="#a6e3a1" radius={[4, 4, 0, 0]} barSize={18} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
-          <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#ec4899] inline-block" /> Receita</span>
+          <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#f38ba8] inline-block" /> Custo</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#fab387] inline-block" /> Comissão</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#89b4fa] inline-block" /> Taxa</span>
             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[#a6e3a1] inline-block" /> Lucro</span>
           </div>
         </div>
