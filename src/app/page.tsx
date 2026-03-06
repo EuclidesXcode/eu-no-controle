@@ -55,9 +55,9 @@ export default function Dashboard() {
         const effCost = (s: any) => s.cost_price_at_sale ?? (bouquetMap[s.bouquet_id]?.cost_price || 0);
         const effTax = (s: any) => s.tax_value ?? 0;
         const effComm = (s: any) => s.commission_value ?? (bouquetMap[s.bouquet_id]?.fixed_commission ?? 7);
-        // For cancelled: only production cost is the loss (refund_amount is informational)
+        // cancelled: net = what was received - what was refunded - production cost
         const calcProfit = (s: any) => s.status === 'cancelled'
-          ? -(s.cancellation_cost || 0)
+          ? (s.total_price || 0) - (s.refund_amount || 0) - (s.cancellation_cost || 0)
           : (s.total_price || 0) - effCost(s) - effTax(s) - effComm(s);
 
         // Revenue = all sales' total_price (same as vendas)
