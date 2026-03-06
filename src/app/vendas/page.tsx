@@ -26,7 +26,7 @@ export default function VendasPage() {
                 .select(`
           *,
           bouquets (
-            name
+            name, cost_price, card_tax, fixed_commission
           )
         `)
                 .order("sale_date", { ascending: false });
@@ -53,6 +53,12 @@ export default function VendasPage() {
             (s.buyer_name?.toLowerCase() || '').includes(term)
         );
     });
+
+    // Resolve effective values with bouquet fallback for legacy null sales
+    const effCost = (s: any) => s.cost_price_at_sale ?? (s.bouquets?.cost_price || 0);
+    const effTax = (s: any) => s.tax_value ?? 0;
+    const effComm = (s: any) => s.commission_value ?? (s.bouquets?.fixed_commission ?? 7);
+    const calcProfit = (s: any) => s.total_price - effCost(s) - effTax(s) - effComm(s);
 
     return (
         <div className="space-y-6 animate-fade-in pb-12">
@@ -165,7 +171,7 @@ export default function VendasPage() {
                                         </td>
                                         <td className="px-6 py-4 text-right font-medium text-sm">R$ {sale.total_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-6 py-4 text-right font-bold text-accent text-sm">
-                                            R$ {(sale.total_price - (sale.cost_price_at_sale || 0) - (sale.tax_value || 0) - (sale.commission_value || 7)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            R$ {calcProfit(sale).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                 ))
@@ -203,7 +209,7 @@ export default function VendasPage() {
                                     <div className="text-right flex flex-col items-end">
                                         <span className="text-sm font-semibold text-muted-foreground leading-none">R$ {sale.total_price.toFixed(2)}</span>
                                         <span className="text-lg font-black text-accent mt-1">
-                                            + R$ {(sale.total_price - (sale.cost_price_at_sale || 0) - (sale.tax_value || 0) - (sale.commission_value || 7)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            + R$ {calcProfit(sale).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </span>
                                         <span className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Lucro Líquido</span>
                                     </div>

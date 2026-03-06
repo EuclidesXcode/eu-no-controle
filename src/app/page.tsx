@@ -26,9 +26,10 @@ export default function Dashboard() {
     async function fetchStats() {
       try {
         // Fetch Sales — use sale_date (not created_at)
+        // Include bouquet cost fields as fallback for legacy sales with null values
         const { data: salesData, error: salesError } = await supabase
           .from("sales")
-          .select("*, bouquets(name)")
+          .select("*, bouquets(name, cost_price, card_tax, fixed_commission)")
           .order('sale_date', { ascending: false });
 
         if (salesError) throw salesError;
@@ -40,9 +41,15 @@ export default function Dashboard() {
 
         const sales = salesData || [];
 
+        // Helper: resolve effective cost/tax/commission
+        // For legacy sales with null values, fall back to current bouquet data
+        const effectiveCost = (s: any) => s.cost_price_at_sale ?? (s.bouquets?.cost_price || 0);
+        const effectiveTax = (s: any) => s.tax_value ?? 0; // Pix = 0; card fee uses bouquet card_tax if needed
+        const effectiveComm = (s: any) => s.commission_value ?? (s.bouquets?.fixed_commission ?? 7);
+
         const revenue = sales.reduce((acc, s) => acc + (s.total_price || 0), 0);
-        const totalCommission = sales.reduce((acc, s) => acc + (s.commission_value ?? 7), 0);
-        const totalCosts = sales.reduce((acc, s) => acc + (s.cost_price_at_sale || 0) + (s.tax_value || 0), 0);
+        const totalCommission = sales.reduce((acc, s) => acc + effectiveComm(s), 0);
+        const totalCosts = sales.reduce((acc, s) => acc + effectiveCost(s) + effectiveTax(s), 0);
         const profit = revenue - totalCosts - totalCommission;
 
         setStats({
@@ -62,9 +69,9 @@ export default function Dashboard() {
           const date = new Date(s.sale_date);
           const key = format(date, 'MMM/yy', { locale: ptBR });
           if (!monthlyMap[key]) monthlyMap[key] = { custo: 0, comissao: 0, taxa: 0, lucro: 0 };
-          const custo = s.cost_price_at_sale || 0;
-          const comissao = s.commission_value ?? 7;
-          const taxa = s.tax_value || 0;
+          const custo = effectiveCost(s);
+          const comissao = effectiveComm(s);
+          const taxa = effectiveTax(s);
           const lucro = (s.total_price || 0) - custo - comissao - taxa;
           monthlyMap[key].custo += custo;
           monthlyMap[key].comissao += comissao;
