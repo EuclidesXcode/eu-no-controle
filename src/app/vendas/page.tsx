@@ -12,7 +12,7 @@ export default function VendasPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [cancelModal, setCancelModal] = useState<{ open: boolean; sale: any | null }>({ open: false, sale: null });
-    const [cancelForm, setCancelForm] = useState({ notes: "", cost: "" });
+    const [cancelForm, setCancelForm] = useState({ notes: "", productionCost: "", refundAmount: "" });
     const [cancelling, setCancelling] = useState(false);
 
     const supabase = createClient();
@@ -73,18 +73,23 @@ export default function VendasPage() {
         if (!cancelModal.sale) return;
         setCancelling(true);
         try {
+            const productionCost = parseFloat(cancelForm.productionCost) || 0;
+            const refundAmount = parseFloat(cancelForm.refundAmount) || 0;
+            const totalLoss = productionCost + refundAmount;
+
             const { error } = await supabase
                 .from("sales")
                 .update({
                     status: 'cancelled',
                     cancelled_at: new Date().toISOString(),
                     cancellation_notes: cancelForm.notes,
-                    cancellation_cost: parseFloat(cancelForm.cost) || 0,
+                    cancellation_cost: productionCost,  // what was spent producing
+                    refund_amount: refundAmount,          // what was returned to client
                 })
                 .eq("id", cancelModal.sale.id);
             if (error) throw error;
             setCancelModal({ open: false, sale: null });
-            setCancelForm({ notes: "", cost: "" });
+            setCancelForm({ notes: "", productionCost: "", refundAmount: "" });
             await fetchSales();
         } catch (err: any) {
             alert(`Erro ao cancelar: ${err.message}`);
@@ -211,8 +216,8 @@ export default function VendasPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${cancelled ? 'bg-destructive/10 text-destructive border border-destructive/20' :
-                                                        sale.payment_method === 'Pix' ? 'bg-accent/10 text-accent border border-accent/20' :
-                                                            'bg-primary/10 text-primary border border-primary/20'
+                                                    sale.payment_method === 'Pix' ? 'bg-accent/10 text-accent border border-accent/20' :
+                                                        'bg-primary/10 text-primary border border-primary/20'
                                                     }`}>
                                                     {cancelled ? 'Cancelado' : sale.payment_method}
                                                 </span>
@@ -229,7 +234,7 @@ export default function VendasPage() {
                                             <td className="px-6 py-4">
                                                 {!cancelled && (
                                                     <button
-                                                        onClick={() => { setCancelModal({ open: true, sale }); setCancelForm({ notes: "", cost: "" }); }}
+                                                        onClick={() => { setCancelModal({ open: true, sale }); setCancelForm({ notes: "", productionCost: "", refundAmount: "" }); }}
                                                         className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold uppercase hover:bg-destructive/20 flex items-center gap-1"
                                                     >
                                                         <XCircle size={12} /> Cancelar
@@ -283,7 +288,7 @@ export default function VendasPage() {
                                             <span className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-tighter">{cancelled ? 'Prejuízo' : 'Lucro Líquido'}</span>
                                             {!cancelled && (
                                                 <button
-                                                    onClick={() => { setCancelModal({ open: true, sale }); setCancelForm({ notes: "", cost: "" }); }}
+                                                    onClick={() => { setCancelModal({ open: true, sale }); setCancelForm({ notes: "", productionCost: "", refundAmount: "" }); }}
                                                     className="mt-1 px-3 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold uppercase flex items-center gap-1"
                                                 >
                                                     <XCircle size={12} /> Cancelar
@@ -299,68 +304,108 @@ export default function VendasPage() {
             </div>
 
             {/* Cancel Modal */}
-            {cancelModal.open && cancelModal.sale && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-[#1e1e2e] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle size={20} className="text-destructive" />
-                                <h3 className="text-lg font-bold">Cancelar Pedido</h3>
-                            </div>
-                            <button onClick={() => setCancelModal({ open: false, sale: null })} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
-                                <X size={18} />
-                            </button>
-                        </div>
+            {cancelModal.open && cancelModal.sale && (() => {
+                const productionCost = parseFloat(cancelForm.productionCost) || 0;
+                const refundAmount = parseFloat(cancelForm.refundAmount) || 0;
+                const totalLoss = productionCost + refundAmount;
+                const saleTotal = cancelModal.sale.total_price || 0;
 
-                        <div className="bg-white/5 rounded-xl p-3 mb-4 text-sm">
-                            <p className="font-semibold">{cancelModal.sale.bouquets?.name || 'Produto'}</p>
-                            <p className="text-muted-foreground text-xs">Comprador: {cancelModal.sale.buyer_name || 'N/A'} · R$ {cancelModal.sale.total_price?.toFixed(2)}</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Motivo / Descrição da devolução</label>
-                                <textarea
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm min-h-[90px] resize-none focus:outline-none focus:ring-2 focus:ring-destructive/40"
-                                    placeholder="Ex: Cliente desistiu, produto avariado, devolução em 06/03 às 15h..."
-                                    value={cancelForm.notes}
-                                    onChange={e => setCancelForm(p => ({ ...p, notes: e.target.value }))}
-                                />
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-[#1e1e2e] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <AlertTriangle size={20} className="text-destructive" />
+                                    <h3 className="text-lg font-bold">Cancelar Pedido</h3>
+                                </div>
+                                <button onClick={() => setCancelModal({ open: false, sale: null })} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+                                    <X size={18} />
+                                </button>
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Custo / Prejuízo (R$)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/40"
-                                    placeholder="0.00"
-                                    value={cancelForm.cost}
-                                    onChange={e => setCancelForm(p => ({ ...p, cost: e.target.value }))}
-                                />
-                                <p className="text-[10px] text-muted-foreground">Quanto você perdeu com esse cancelamento (flores descartadas, entrega, etc.)</p>
-                            </div>
-                        </div>
 
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => setCancelModal({ open: false, sale: null })}
-                                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-white/5 transition-colors"
-                            >
-                                Voltar
-                            </button>
-                            <button
-                                onClick={handleCancelSubmit}
-                                disabled={cancelling || !cancelForm.notes}
-                                className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-sm font-bold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                <XCircle size={16} />
-                                {cancelling ? 'Cancelando...' : 'Confirmar Cancelamento'}
-                            </button>
+                            {/* Sale info */}
+                            <div className="bg-white/5 rounded-xl p-3 mb-4 text-sm">
+                                <p className="font-semibold">{cancelModal.sale.bouquets?.name || 'Produto'}</p>
+                                <p className="text-muted-foreground text-xs">Comprador: {cancelModal.sale.buyer_name || 'N/A'} · <span className="text-accent font-bold">R$ {saleTotal.toFixed(2)}</span></p>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Motivo */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Motivo / Descrição</label>
+                                    <textarea
+                                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm min-h-[70px] resize-none focus:outline-none focus:ring-2 focus:ring-destructive/40"
+                                        placeholder="Ex: Cliente desistiu, produto avariado, devolução em 06/03 às 15h..."
+                                        value={cancelForm.notes}
+                                        onChange={e => setCancelForm(p => ({ ...p, notes: e.target.value }))}
+                                    />
+                                </div>
+
+                                {/* Custo de produção */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Custo que tive (R$)</label>
+                                    <input
+                                        type="number" step="0.01" min="0"
+                                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/40"
+                                        placeholder="0.00 — flores, entrega, embalagem..."
+                                        value={cancelForm.productionCost}
+                                        onChange={e => setCancelForm(p => ({ ...p, productionCost: e.target.value }))}
+                                    />
+                                </div>
+
+                                {/* Devolução ao cliente */}
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Devolvido ao cliente (R$)</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCancelForm(p => ({ ...p, refundAmount: saleTotal.toFixed(2) }))}
+                                            className="text-[10px] font-bold text-accent hover:text-accent/80 uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded-md transition-colors"
+                                        >
+                                            ↩ Devolver tudo (R$ {saleTotal.toFixed(2)})
+                                        </button>
+                                    </div>
+                                    <input
+                                        type="number" step="0.01" min="0"
+                                        className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive/40"
+                                        placeholder="0.00 — quanto foi devolvido ao cliente"
+                                        value={cancelForm.refundAmount}
+                                        onChange={e => setCancelForm(p => ({ ...p, refundAmount: e.target.value }))}
+                                    />
+                                </div>
+
+                                {/* Prejuízo calculado */}
+                                {(productionCost > 0 || refundAmount > 0) && (
+                                    <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3">
+                                        <p className="text-xs text-muted-foreground mb-1">Prejuízo total calculado</p>
+                                        <p className="text-2xl font-black text-destructive">- R$ {totalLoss.toFixed(2)}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-1">
+                                            Custo R$ {productionCost.toFixed(2)} + Devolução R$ {refundAmount.toFixed(2)}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => setCancelModal({ open: false, sale: null })}
+                                    className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-white/5 transition-colors"
+                                >
+                                    Voltar
+                                </button>
+                                <button
+                                    onClick={handleCancelSubmit}
+                                    disabled={cancelling || !cancelForm.notes}
+                                    className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-sm font-bold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    <XCircle size={16} />
+                                    {cancelling ? 'Cancelando...' : 'Confirmar Cancelamento'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

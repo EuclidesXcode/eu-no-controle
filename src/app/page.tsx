@@ -60,7 +60,7 @@ export default function Dashboard() {
         const revenue = activeSales.reduce((acc, s) => acc + (s.total_price || 0), 0);
         const totalCommission = activeSales.reduce((acc, s) => acc + effComm(s), 0);
         const totalCosts = activeSales.reduce((acc, s) => acc + effCost(s) + effTax(s), 0);
-        const cancellationLoss = cancelledSales.reduce((acc, s) => acc + (s.cancellation_cost || 0), 0);
+        const cancellationLoss = cancelledSales.reduce((acc, s) => acc + (s.cancellation_cost || 0) + (s.refund_amount || 0), 0);
         const profit = revenue - totalCosts - totalCommission - cancellationLoss;
 
         setStats({

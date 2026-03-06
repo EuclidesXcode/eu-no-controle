@@ -59,9 +59,10 @@ ALTER TABLE sales ADD COLUMN IF NOT EXISTS wants_to_register BOOLEAN DEFAULT FAL
 -- Adiciona commission_value caso não exista
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS commission_value NUMERIC(10, 2) DEFAULT 7.00;
 
--- Adiciona cost_price_at_sale caso não exista
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS cost_price_at_sale NUMERIC(10, 2);
-
--- Adiciona tax_value caso não exista
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS tax_value NUMERIC(10, 2);
+-- Adiciona campos de cancelamento (v3)
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancellation_notes TEXT;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancellation_cost NUMERIC(10, 2) DEFAULT 0;  -- custo de produção tido
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS refund_amount NUMERIC(10, 2) DEFAULT 0;       -- valor devolvido ao cliente
 
