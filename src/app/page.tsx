@@ -41,7 +41,7 @@ export default function Dashboard() {
         const sales = salesData || [];
 
         const revenue = sales.reduce((acc, s) => acc + (s.total_price || 0), 0);
-        const totalCommission = sales.reduce((acc, s) => acc + (s.commission_value || 0), 0);
+        const totalCommission = sales.reduce((acc, s) => acc + (s.commission_value ?? 7), 0);
         const totalCosts = sales.reduce((acc, s) => acc + (s.cost_price_at_sale || 0) + (s.tax_value || 0), 0);
         const profit = revenue - totalCosts - totalCommission;
 
@@ -63,7 +63,7 @@ export default function Dashboard() {
           const key = format(date, 'MMM/yy', { locale: ptBR });
           if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, lucro: 0 };
           monthlyMap[key].revenue += s.total_price || 0;
-          const saleProfit = (s.total_price || 0) - (s.cost_price_at_sale || 0) - (s.tax_value || 0) - (s.commission_value || 0);
+          const saleProfit = (s.total_price || 0) - (s.cost_price_at_sale || 0) - (s.tax_value || 0) - (s.commission_value ?? 7);
           monthlyMap[key].lucro += saleProfit;
         });
 
