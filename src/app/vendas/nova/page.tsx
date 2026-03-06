@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Check, Search, CreditCard, Banknote, QrCode } from "lucide-react";
+import { ChevronLeft, Check, Search, CreditCard, Banknote, QrCode, Percent, Tag } from "lucide-react";
 import Link from "next/link";
 
 export default function NovaVendaPage() {
@@ -15,22 +15,30 @@ export default function NovaVendaPage() {
     const [selectedBuque, setSelectedBuque] = useState<any>(null);
     const [quantity, setQuantity] = useState(1);
     const [paymentMethod, setPaymentMethod] = useState("Pix");
-    const [totalPrice, setTotalPrice] = useState(0);
+    const [discount, setDiscount] = useState<string>(""); // percentage e.g. "10"
+    const [basePrice, setBasePrice] = useState(0);       // price × qty before discount
+    const [totalPrice, setTotalPrice] = useState(0);     // after discount
 
-    useEffect(() => {
-        fetchBuques();
-    }, []);
+    useEffect(() => { fetchBuques(); }, []);
 
     async function fetchBuques() {
         const { data } = await supabase.from("bouquets").select("*").order("name");
         setBuques(data || []);
     }
 
+    // Recalculate whenever product, quantity or discount changes
     useEffect(() => {
         if (selectedBuque) {
-            setTotalPrice(selectedBuque.price * quantity);
+            const base = selectedBuque.price * quantity;
+            const pct = parseFloat(discount) || 0;
+            const discountedPrice = base * (1 - pct / 100);
+            setBasePrice(base);
+            setTotalPrice(+discountedPrice.toFixed(2));
         }
-    }, [selectedBuque, quantity]);
+    }, [selectedBuque, quantity, discount]);
+
+    const discountPct = parseFloat(discount) || 0;
+    const discountValue = basePrice > 0 ? +(basePrice * discountPct / 100).toFixed(2) : 0;
 
     async function handleSubmit() {
         if (!selectedBuque) return;
@@ -39,7 +47,7 @@ export default function NovaVendaPage() {
         try {
             const taxRate = paymentMethod.includes("Cartão") ? selectedBuque.card_tax : 0;
             const taxValue = (totalPrice * taxRate) / 100;
-            const commissionValue = 7.00; // Fixed commission
+            const commissionValue = selectedBuque.fixed_commission ?? 7.00;
 
             const { error } = await supabase.from("sales").insert([
                 {
@@ -50,6 +58,8 @@ export default function NovaVendaPage() {
                     tax_value: taxValue,
                     commission_value: commissionValue,
                     payment_method: paymentMethod,
+                    discount_pct: discountPct > 0 ? discountPct : null,
+                    discount_value: discountPct > 0 ? discountValue : null,
                 },
             ]);
 
@@ -115,6 +125,7 @@ export default function NovaVendaPage() {
                     </h3>
 
                     <div className="grid grid-cols-2 gap-4">
+                        {/* Quantidade */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground">Quantidade</label>
                             <input
@@ -124,17 +135,48 @@ export default function NovaVendaPage() {
                                 onChange={e => setQuantity(parseInt(e.target.value) || 1)}
                             />
                         </div>
+
+                        {/* Desconto % */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Preço Total (R$)</label>
-                            <input
-                                type="number" step="0.01"
-                                className="w-full bg-background border border-border rounded-lg px-4 py-2 font-bold text-accent"
-                                value={totalPrice}
-                                onChange={e => setTotalPrice(parseFloat(e.target.value) || 0)}
-                            />
+                            <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                                <Percent size={13} className="text-primary" /> Desconto (%)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number" min="0" max="100" step="1"
+                                    className="w-full bg-background border border-border rounded-lg px-4 py-2 pr-8"
+                                    placeholder="0"
+                                    value={discount}
+                                    onChange={e => setDiscount(e.target.value)}
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">%</span>
+                            </div>
                         </div>
                     </div>
 
+                    {/* Price breakdown */}
+                    {selectedBuque && (
+                        <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2 text-sm">
+                            <div className="flex justify-between text-muted-foreground">
+                                <span>Preço base ({quantity}x R$ {selectedBuque.price.toFixed(2)})</span>
+                                <span>R$ {basePrice.toFixed(2)}</span>
+                            </div>
+                            {discountPct > 0 && (
+                                <div className="flex justify-between text-primary font-medium">
+                                    <span className="flex items-center gap-1">
+                                        <Tag size={12} /> Desconto {discountPct}%
+                                    </span>
+                                    <span>− R$ {discountValue.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-accent text-base border-t border-white/10 pt-2 mt-1">
+                                <span>Total a cobrar</span>
+                                <span>R$ {totalPrice.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Forma de Pagamento */}
                     <div className="space-y-3">
                         <label className="text-sm font-medium text-muted-foreground">Forma de Pagamento</label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -151,7 +193,7 @@ export default function NovaVendaPage() {
                     onClick={handleSubmit}
                     className="w-full py-4 bg-gradient-to-r from-accent to-secondary text-white font-bold rounded-xl shadow-lg hover:shadow-accent/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                    {loading ? "Registrando..." : "Finalizar Venda"}
+                    {loading ? "Registrando..." : `Finalizar Venda — R$ ${totalPrice.toFixed(2)}`}
                 </button>
             </div>
         </div>

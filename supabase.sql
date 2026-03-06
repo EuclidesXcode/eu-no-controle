@@ -66,3 +66,7 @@ ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancellation_notes TEXT;
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS cancellation_cost NUMERIC(10, 2) DEFAULT 0;  -- custo de produção tido
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS refund_amount NUMERIC(10, 2) DEFAULT 0;       -- valor devolvido ao cliente
 
+-- Adiciona campos de desconto (v4)
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount_pct NUMERIC(5, 2);    -- percentual de desconto (ex: 10.00 = 10%)
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS discount_value NUMERIC(10, 2); -- valor em R$ do desconto aplicado
+
