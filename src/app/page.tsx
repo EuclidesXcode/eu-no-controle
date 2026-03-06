@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, DollarSign, Package, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,9 +15,11 @@ export default function Dashboard() {
     productCount: 0,
     totalCommission: 0,
     totalCosts: 0,
+    cancelledCount: 0,
   });
   const [recentSales, setRecentSales] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [donutData, setDonutData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
@@ -63,6 +65,7 @@ export default function Dashboard() {
           totalCommission,
           totalCosts,
           profit,
+          cancelledCount: 0, // updated later after donut calculation
         });
 
         setRecentSales(sales.slice(0, 8));
@@ -93,7 +96,17 @@ export default function Dashboard() {
             Lucro: +vals.lucro.toFixed(2),
           }));
 
-        setChartData(chart.length > 0 ? chart : [{ name: 'Sem dados', Custo: 0, Comissão: 0, Taxa: 0, Lucro: 0 }]);
+        setChartData(chart.length > 0 ? chart : [{ name: 'Sem dados', Custo: 0, 'Comissão': 0, Taxa: 0, Lucro: 0 }]);
+
+        // Donut chart: completed vs cancelled
+        const completed = sales.filter(s => s.status !== 'cancelled').length;
+        const cancelled = sales.filter(s => s.status === 'cancelled').length;
+        setDonutData([
+          { name: 'Efetuadas', value: completed || 0 },
+          { name: 'Canceladas', value: cancelled || 0 },
+        ]);
+
+        setStats(prev => ({ ...prev, cancelledCount: cancelled }));
 
       } catch (err) {
         console.error("Erro no dashboard:", err);
@@ -217,10 +230,80 @@ export default function Dashboard() {
                   item={sale.bouquets?.name || 'Produto'}
                   price={`R$ ${sale.total_price.toFixed(2)}`}
                   method={sale.payment_method}
+                  cancelled={sale.status === 'cancelled'}
                 />
               ))
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Donut Chart — Vendas x Cancelamentos */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="p-6 glass-card rounded-xl border border-white/5">
+          <h3 className="text-lg font-semibold mb-2">Vendas × Cancelamentos</h3>
+          <p className="text-xs text-muted-foreground mb-4">Proporção de pedidos efetuados vs cancelados</p>
+          {loading ? (
+            <p className="text-sm text-muted-foreground animate-pulse text-center py-10">Carregando...</p>
+          ) : (
+            <div className="flex items-center gap-8">
+              <div className="relative h-[180px] w-[180px] flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData.every(d => d.value === 0) ? [{ name: 'Sem dados', value: 1 }] : donutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={donutData.every(d => d.value === 0) ? 0 : 3}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {donutData.every(d => d.value === 0)
+                        ? <Cell fill="#313244" />
+                        : donutData.map((_, i) => (
+                          <Cell key={i} fill={i === 0 ? '#a6e3a1' : '#f38ba8'} />
+                        ))
+                      }
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#181825', border: '1px solid #313244', borderRadius: '12px' }}
+                      itemStyle={{ color: '#f8fafc' }}
+                      formatter={(value: any, name: any) => [`${value} pedido${value !== 1 ? 's' : ''}`, name]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-black">{stats.salesCount}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">total</span>
+                </div>
+              </div>
+              <div className="space-y-4 flex-1">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-[#a6e3a1] flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Efetuadas</p>
+                    <p className="text-xl font-bold text-[#a6e3a1]">{donutData[0]?.value ?? 0}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-[#f38ba8] flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Canceladas</p>
+                    <p className="text-xl font-bold text-[#f38ba8]">{donutData[1]?.value ?? 0}</p>
+                  </div>
+                </div>
+                {stats.salesCount > 0 && (
+                  <div className="pt-2 border-t border-white/5">
+                    <p className="text-xs text-muted-foreground">Taxa de sucesso</p>
+                    <p className="text-lg font-bold">{Math.round(((donutData[0]?.value ?? 0) / stats.salesCount) * 100)}%</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -247,19 +330,19 @@ function StatCard({ title, value, icon, trend, positive }: any) {
   );
 }
 
-function RecentSale({ buyerName, item, price, method }: any) {
+function RecentSale({ buyerName, item, price, method, cancelled }: any) {
   return (
-    <div className="flex items-center justify-between">
+    <div className={`flex items-center justify-between ${cancelled ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center font-bold text-xs uppercase text-primary">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase ${cancelled ? 'bg-destructive/20 text-destructive' : 'bg-primary/20 text-primary'}`}>
           {buyerName?.substring(0, 2)}
         </div>
         <div>
-          <p className="text-sm font-medium">{item}</p>
+          <p className="text-sm font-medium">{item} {cancelled && <span className="text-[9px] text-destructive font-bold uppercase ml-1">cancelado</span>}</p>
           <p className="text-xs text-muted-foreground">{buyerName} · {method || 'Pix'}</p>
         </div>
       </div>
-      <span className="text-sm font-semibold">{price}</span>
+      <span className={`text-sm font-semibold ${cancelled ? 'line-through text-muted-foreground' : ''}`}>{price}</span>
     </div>
   );
 }
