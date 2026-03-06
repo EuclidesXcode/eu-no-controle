@@ -45,10 +45,14 @@ export default function VendasPage() {
         profit: acc.profit + (sale.total_price - (sale.cost_price_at_sale || 0) - (sale.tax_value || 0) - (sale.commission_value || 7))
     }), { revenue: 0, profit: 0 });
 
-    const filteredSales = sales.filter(s =>
-        s.bouquets?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.payment_method.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredSales = sales.filter(s => {
+        const term = searchTerm.toLowerCase();
+        return (
+            (s.bouquets?.name?.toLowerCase() || '').includes(term) ||
+            (s.payment_method?.toLowerCase() || '').includes(term) ||
+            (s.buyer_name?.toLowerCase() || '').includes(term)
+        );
+    });
 
     return (
         <div className="space-y-6 animate-fade-in pb-12">
